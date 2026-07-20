@@ -7,7 +7,7 @@ Redis 缓存工具模块
 import redis
 import json
 import functools
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Dict
 from datetime import timedelta
 
 from config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB
@@ -16,7 +16,7 @@ from config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB
 class RedisClient:
     """Redis 客户端单例"""
     _instance: Optional[redis.Redis] = None
-    
+
     @classmethod
     def get_client(cls) -> redis.Redis:
         """获取 Redis 客户端实例（单例模式）"""
@@ -37,6 +37,153 @@ class RedisClient:
 def get_redis() -> redis.Redis:
     """获取 Redis 客户端（用于 FastAPI 依赖注入）"""
     return RedisClient.get_client()
+
+
+# ============== 通用缓存接口 ==============
+
+class CacheService:
+    """
+    通用缓存服务类
+
+    提供统一的缓存操作接口，所有业务模块可复用
+    """
+
+    @staticmethod
+    def get(key: str) -> Optional[Any]:
+        """
+        获取缓存值
+
+        Args:
+            key: 缓存键
+
+        Returns:
+            缓存值（自动 JSON 反序列化），不存在返回 None
+        """
+        try:
+            redis_client = get_redis()
+            value = redis_client.get(key)
+            if value is not None:
+                return json.loads(value)
+            return None
+        except Exception as e:
+            print(f"⚠️ Redis get error: {e}")
+            return None
+
+    @staticmethod
+    def set(key: str, value: Any, expire_seconds: int = 60) -> bool:
+        """
+        设置缓存值
+
+        Args:
+            key: 缓存键
+            value: 缓存值（自动 JSON 序列化）
+            expire_seconds: 过期时间（秒）
+
+        Returns:
+            是否设置成功
+        """
+        try:
+            redis_client = get_redis()
+            redis_client.setex(
+                key,
+                expire_seconds,
+                json.dumps(value, ensure_ascii=False)
+            )
+            return True
+        except Exception as e:
+            print(f"⚠️ Redis set error: {e}")
+            return False
+
+    @staticmethod
+    def delete(key: str) -> bool:
+        """
+        删除缓存
+
+        Args:
+            key: 缓存键
+
+        Returns:
+            是否删除成功
+        """
+        try:
+            redis_client = get_redis()
+            redis_client.delete(key)
+            return True
+        except Exception as e:
+            print(f"⚠️ Redis delete error: {e}")
+            return False
+
+    @staticmethod
+    def exists(key: str) -> bool:
+        """
+        检查缓存是否存在
+
+        Args:
+            key: 缓存键
+
+        Returns:
+            是否存在
+        """
+        try:
+            redis_client = get_redis()
+            return redis_client.exists(key) > 0
+        except Exception as e:
+            print(f"⚠️ Redis exists error: {e}")
+            return False
+
+    @staticmethod
+    def get_or_set(key: str, fetch_func: Callable, expire_seconds: int = 60) -> Any:
+        """
+        获取缓存，不存在则调用函数获取并缓存
+
+        Args:
+            key: 缓存键
+            fetch_func: 数据获取函数
+            expire_seconds: 过期时间（秒）
+
+        Returns:
+            缓存值或函数返回值
+
+        Usage:
+            data = CacheService.get_or_set(
+                "weather:wuhan",
+                lambda: fetch_weather_from_api("武汉"),
+                expire_seconds=3600
+            )
+        """
+        # 先尝试从缓存获取
+        cached_value = CacheService.get(key)
+        if cached_value is not None:
+            return cached_value
+
+        # 缓存不存在，调用函数获取数据
+        value = fetch_func()
+
+        # 存入缓存
+        CacheService.set(key, value, expire_seconds)
+
+        return value
+
+    @staticmethod
+    def clear_pattern(pattern: str) -> int:
+        """
+        清除匹配模式的所有缓存
+
+        Args:
+            pattern: 键模式（支持通配符 *）
+
+        Returns:
+            删除的键数量
+        """
+        try:
+            redis_client = get_redis()
+            keys = redis_client.keys(pattern)
+            if keys:
+                return redis_client.delete(*keys)
+            return 0
+        except Exception as e:
+            print(f"⚠️ Redis clear_pattern error: {e}")
+            return 0
 
 
 def cache_result(

@@ -10,6 +10,8 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+
 # 开发环境
 # DATABASES = {
 #     'default': {

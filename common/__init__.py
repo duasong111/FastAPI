@@ -7,7 +7,8 @@ from common.redis_cache import (
     get_redis,
     cache_result,
     clear_cache,
-    rate_limit
+    rate_limit,
+    CacheService  # 新增通用缓存服务
 )
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "get_redis",
     "cache_result",
     "clear_cache",
-    "rate_limit"
+    "rate_limit",
+    "CacheService"
 ]

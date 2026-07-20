@@ -5,13 +5,14 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 from functions.Time import get_current_time_formats
+from functions.Weather import get_weather_data
 from databases.database import get_db
-from databases.models import TimeRequestLog
+from databases.models import TimeRequestLog, WeatherRequestLog
 from common.redis_cache import rate_limit
 
 app = FastAPI()
 
-# ============== CORS 跨域配置 ==============
+# ============== CORS 跨境配置 ==============
 # 允许所有来源、方法和头（开发环境）
 # 生产环境应配置具体的 allow_origins
 app.add_middleware(
@@ -62,6 +63,46 @@ async def get_time(request: Request, db: Session = Depends(get_db)):
         "code": 200,
         "message": "success",
         "data": time_data
+    }
+
+
+@app.get("/api/weather")
+@rate_limit(key_prefix="api:weather", max_requests=30, window_seconds=60)
+async def get_weather(
+    request: Request,
+    db: Session = Depends(get_db),
+    city: str = "武汉"
+):
+    """
+    获取指定城市的天气信息
+
+    - 缓存策略：结果缓存 1 小时，减少 API 调用
+    - 速率限制：每个 IP 每分钟最多 30 次请求
+    - 日志记录：每次请求记录到数据库
+
+    Args:
+        city: 城市名称，默认武汉
+
+    Returns:
+        天气数据（温度、湿度、风向、空气质量等）
+    """
+    # 记录请求日志
+    log_entry = WeatherRequestLog(
+        city=city,
+        request_time=datetime.now(),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    db.add(log_entry)
+    db.commit()
+
+    # 获取天气数据（自动使用 Redis 缓存）
+    weather_data = get_weather_data(city)
+
+    return {
+        "code": 200,
+        "message": "success",
+        "data": weather_data
     }
 
 

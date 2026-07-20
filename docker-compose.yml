@@ -6,7 +6,7 @@ services:
     container_name: fastapi-app
     restart: unless-stopped
 
-    # 网络配置（连接到 1Panel 网络）
+    # 加入 1Panel 网络
     networks:
       - 1panel-network
 
@@ -14,23 +14,19 @@ services:
     ports:
       - "8000:8000"
 
-    # 环境变量配置
-    environment:
-      - DATABASE_URL=postgresql://user_rthXrh:password_prabtR@1Panel-postgresql-iqTx:5432/go_pg
-      - REDIS_HOST=1Panel-redis-NGma
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=redis_password
-      - REDIS_DB=7
+    # 从 .env 文件读取环境变量
+    env_file:
+      - .env
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-# 使用外部网络（1Panel 已创建）
+# 使用 1Panel 已有的网络
 networks:
   1panel-network:
     external: true

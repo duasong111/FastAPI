@@ -15,3 +15,15 @@ GET http://127.0.0.1:8000/api/get_time
 Accept: application/json
 
 ###
+
+# 获取武汉天气
+GET http://127.0.0.1:8000/api/weather
+Accept: application/json
+
+###
+
+# 获取指定城市天气
+GET http://127.0.0.1:8000/api/weather?city=北京
+Accept: application/json
+
+###
