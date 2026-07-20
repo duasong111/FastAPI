@@ -3,13 +3,14 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# 安装必要的系统依赖（PostgreSQL 客户端）
+# 安装必要的系统依赖（重要！）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    python3-dev \         
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 配置 pip 使用阿里云镜像
+# 配置 pip 使用阿里云镜像（加速）
 RUN python -m pip install --upgrade pip
 RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 RUN pip config set global.trusted-host mirrors.aliyun
@@ -26,5 +27,5 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-# 生产环境使用 gunicorn（不用 --reload）
+# 生产环境使用 gunicorn
 CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info"]
