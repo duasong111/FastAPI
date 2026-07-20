@@ -1,0 +1,43 @@
+name: Deploy to Server
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Image"]
+    types:
+      - completed
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+    - name: Deploy to server via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # 拉取最新镜像
+          docker pull ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
+
+          # 停止并删除旧容器
+          docker stop fastapi-app || true
+          docker rm fastapi-app || true
+
+          # 启动新容器
+          docker run -d \
+            --name fastapi-app \
+            --restart unless-stopped \
+            -p 8000:8000 \
+            -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            -e REDIS_HOST="${{ secrets.REDIS_HOST }}" \
+            -e REDIS_PORT="6379" \
+            -e REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}" \
+            -e REDIS_DB="7" \
+            ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
+
+          # 清理旧镜像
+          docker image prune -af --filter "until=24h"
