@@ -1,0 +1,88 @@
+from fastapi import FastAPI, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from datetime import datetime
+
+from functions.Time import get_current_time_formats
+from databases.database import get_db
+from databases.models import TimeRequestLog
+from common.redis_cache import rate_limit
+
+app = FastAPI()
+
+# ============== CORS 跨域配置 ==============
+# 允许所有来源、方法和头（开发环境）
+# 生产环境应配置具体的 allow_origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],              # 允许所有来源，生产环境建议指定具体域名
+    allow_credentials=True,           # 允许携带凭证（Cookie、Authorization header）
+    allow_methods=["*"],              # 允许所有 HTTP 方法
+    allow_headers=["*"],              # 允许所有请求头
+    expose_headers=["*"],             # 暴露所有响应头给客户端
+)
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+
+@app.get("/hello/{name}")
+async def say_hello(name: str):
+    return {"message": f"Hello {name}"}
+
+
+@app.get("/api/get_time")
+@rate_limit(key_prefix="api:get_time", max_requests=10, window_seconds=60)
+async def get_time(request: Request, db: Session = Depends(get_db)):
+    """
+    获取当前时间的多种格式
+
+    - 缓存策略：结果缓存 5 秒，减少重复计算
+    - 速率限制：每个 IP 每分钟最多 10 次请求
+    - 日志记录：每次请求记录到数据库
+
+    返回ISO格式、日期时间格式、时间戳、星期等多种时间表示
+    """
+    # 记录请求日志
+    log_entry = TimeRequestLog(
+        request_time=datetime.now(),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    db.add(log_entry)
+    db.commit()
+
+    # 获取时间格式（自动使用 Redis 缓存）
+    time_data = get_current_time_formats()
+
+    return {
+        "code": 200,
+        "message": "success",
+        "data": time_data
+    }
+
+
+@app.exception_handler(Exception)
+async def rate_limit_exception_handler(request: Request, exc: Exception):
+    """处理速率限制异常"""
+    if "Rate limit exceeded" in str(exc):
+        return JSONResponse(
+            status_code=429,
+            content={
+                "code": 429,
+                "message": str(exc),
+                "data": None
+            }
+        )
+    # 其他异常
+    return JSONResponse(
+        status_code=500,
+        content={
+            "code": 500,
+            "message": f"Internal server error: {str(exc)}",
+            "data": None
+        }
+    )
