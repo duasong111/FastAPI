@@ -1,23 +1,36 @@
-# Docker Compose 配置文件
-# 用于本地开发和测试
-
 version: '3.8'
 
 services:
-  web:
-    build: .
+  fastapi-app:
+    image: duasong111/fastapi-app:latest
+    container_name: fastapi-app
+    restart: unless-stopped
+
+    # 网络配置（连接到 1Panel 网络）
+    networks:
+      - 1panel-network
+
+    # 端口映射
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_DB=${REDIS_DB}
-    restart: unless-stopped
-    networks:
-      - app-network
 
+    # 环境变量配置
+    environment:
+      - DATABASE_URL=postgresql://user_rthXrh:password_prabtR@1Panel-postgresql-iqTx:5432/go_pg
+      - REDIS_HOST=1Panel-redis-NGma
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redis_password
+      - REDIS_DB=7
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# 使用外部网络（1Panel 已创建）
 networks:
-  app-network:
-    driver: bridge
+  1panel-network:
+    external: true

@@ -6,7 +6,7 @@ WORKDIR /app
 # 安装必要的系统依赖（重要！）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    python3-dev \         
+    python3-dev \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,5 +27,5 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-# 生产环境使用 gunicorn
-CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info"]
+# 生产环境使用 uvicorn（已解决 gunicorn 不可用问题）
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
