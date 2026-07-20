@@ -1,15 +1,25 @@
 # 配置有关的静态文件
 # 正式环境配置
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'go_pg',
-        'USER': 'user_rthXrh',
-        'PASSWORD': 'password_prabtR',
-        'HOST': '1Panel-postgresql-iqTx',
-        'PORT': '5432',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'postgres',
+#         'USER': 'user_rthXrh',
+#         'PASSWORD': 'password_prabtR',
+#         'HOST': '1Panel-postgresql-iqTx',
+#         'PORT': '5432',
+#     }
+# }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'postgres',
+#         'USER': 'user_rthXrh',
+#         'PASSWORD': 'password_prabtR',
+#         'HOST': '43.136.37.113',
+#         'PORT': '5432',
+#     }
+# }
 
 
 # 开发环境
@@ -17,17 +27,6 @@ DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
 #         'NAME': 'test_pg',
-#         'USER': 'postgres',
-#         'PASSWORD': 'gsm200818534',
-#         'HOST': '10.1.1.136',
-#         'PORT': '5432',
-#     }
-# }
-# 开发环境配置
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'intellicamera',
 #         'USER': 'postgres',
 #         'PASSWORD': 'gsm200818534',
 #         'HOST': '10.1.1.136',
