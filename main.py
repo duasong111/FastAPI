@@ -3,14 +3,45 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
+from contextlib import asynccontextmanager
+import logging
 
 from functions.Time import get_current_time_formats
 from functions.Weather import get_weather_data
-from databases.database import get_db
+from databases.database import get_db, init_db
 from databases.models import TimeRequestLog, WeatherRequestLog
 from common.redis_cache import rate_limit
 
-app = FastAPI()
+# 日志配置
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+# ============== 应用生命周期管理 ==============
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    应用启动/关闭时自动执行
+
+    启动时：检查并创建所有缺失的数据库表
+    关闭时：清理资源（如需）
+    """
+    # 启动时执行
+    _ = app  # 标记参数已使用
+    logger.info("🚀 应用启动中，检查数据库表...")
+    try:
+        init_db()
+        logger.info("✅ 数据库初始化完成")
+    except Exception as e:
+        logger.error(f"❌ 数据库初始化失败: {e}")
+
+    yield
+
+    # 关闭时执行（目前无需清理）
+    logger.info("👋 应用关闭")
+
+
+app = FastAPI(lifespan=lifespan)
 
 # ============== CORS 跨境配置 ==============
 # 允许所有来源、方法和头（开发环境）
