@@ -15,9 +15,12 @@ RUN python -m pip install --upgrade pip
 RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 RUN pip config set global.trusted-host mirrors.aliyun
 
-# 安装 Python 依赖
+# 安装 Python 依赖（仅列出顶层依赖，子依赖自动解析）
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# 验证关键依赖已安装
+RUN python -c "import fastapi, uvicorn, sqlalchemy, psycopg2, redis; print('✅ All dependencies installed')"
 
 # 复制项目代码
 COPY . .

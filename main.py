@@ -12,6 +12,14 @@ from databases.database import get_db, init_db
 from databases.models import TimeRequestLog, WeatherRequestLog
 from common.redis_cache import rate_limit
 
+# 引入序列化器
+from Serializer.TimeSerializer import TimeData, TimeResponse
+from Serializer.WeatherSerializer import (
+    WeatherQueryRequest,
+    WeatherData,
+    WeatherResponse,
+)
+
 # 日志配置
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -66,7 +74,7 @@ async def say_hello(name: str):
     return {"message": f"Hello {name}"}
 
 
-@app.get("/api/get_time")
+@app.get("/api/get_time", response_model=TimeResponse)
 @rate_limit(key_prefix="api:get_time", max_requests=10, window_seconds=60)
 async def get_time(request: Request, db: Session = Depends(get_db)):
     """
@@ -88,21 +96,22 @@ async def get_time(request: Request, db: Session = Depends(get_db)):
     db.commit()
 
     # 获取时间格式（自动使用 Redis 缓存）
-    time_data = get_current_time_formats()
+    time_dict = get_current_time_formats()
+    time_data = TimeData(**time_dict)
 
-    return {
-        "code": 200,
-        "message": "success",
-        "data": time_data
-    }
+    return TimeResponse(
+        code=200,
+        message="success",
+        data=time_data
+    )
 
 
-@app.get("/api/weather")
+@app.get("/api/weather", response_model=WeatherResponse)
 @rate_limit(key_prefix="api:weather", max_requests=30, window_seconds=60)
 async def get_weather(
     request: Request,
     db: Session = Depends(get_db),
-    city: str = "武汉"
+    query: WeatherQueryRequest = Depends()
 ):
     """
     获取指定城市的天气信息
@@ -110,13 +119,9 @@ async def get_weather(
     - 缓存策略：结果缓存 1 小时，减少 API 调用
     - 速率限制：每个 IP 每分钟最多 30 次请求
     - 日志记录：每次请求记录到数据库
-
-    Args:
-        city: 城市名称，默认武汉
-
-    Returns:
-        天气数据（温度、湿度、风向、空气质量等）
     """
+    city = query.city
+
     # 记录请求日志
     log_entry = WeatherRequestLog(
         city=city,
@@ -128,13 +133,14 @@ async def get_weather(
     db.commit()
 
     # 获取天气数据（自动使用 Redis 缓存）
-    weather_data = get_weather_data(city)
+    weather_dict = get_weather_data(city)
+    weather_data = WeatherData(**weather_dict)
 
-    return {
-        "code": 200,
-        "message": "success",
-        "data": weather_data
-    }
+    return WeatherResponse(
+        code=200,
+        message="success",
+        data=weather_data
+    )
 
 
 @app.exception_handler(Exception)
