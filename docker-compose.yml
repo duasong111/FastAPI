@@ -18,6 +18,10 @@ services:
     env_file:
       - .env
 
+    # 持久化向量库与上传的原始文件（不挂载则容器重建后 Chroma 数据全丢）
+    volumes:
+      - ./data:/app/data
+
     # 健康检查
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]

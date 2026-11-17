@@ -13,3 +13,19 @@ redis
 # Other dependencies
 python-multipart
 requests
+python-dotenv
+
+# 用户认证与密钥保护
+bcrypt
+pyjwt
+cryptography
+
+# RAG / AI
+langchain
+langchain-openai
+langchain-chroma
+langchain-text-splitters
+chromadb
+mem0ai
+tiktoken
+pypdf

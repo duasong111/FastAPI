@@ -442,3 +442,9 @@ docker network inspect 1panel-network | grep -E "Name|IPv4Address"
 ---
 
 **最后更新：** 2026-07-21
+
+本地运行测试
+.venv\Scripts\python.exe -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+查看本地的接口文档
+http://localhost:8000/docs#/

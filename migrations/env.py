@@ -21,7 +21,10 @@ DATABASE_URL = (
 )
 
 # 创建数据库引擎
-engine = create_engine(DATABASE_URL, echo=True)
+# 显式指定 client_encoding=UTF-8：
+# 迁移 SQL 里带中文注释，若客户端编码跟随 Windows 系统区域设置（GBK），
+# 发送含中文的语句时服务端会报 invalid byte sequence。
+engine = create_engine(DATABASE_URL, echo=True, connect_args={"client_encoding": "utf8"})
 
 
 def get_engine():

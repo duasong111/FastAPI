@@ -27,7 +27,10 @@ DATABASE_URL = os.getenv(
     f"@{db_config['HOST']}:{db_config['PORT']}/{db_config['NAME']}"
 )
 
-engine = create_engine(DATABASE_URL, echo=False)
+# 显式指定 client_encoding=UTF-8：
+# 知识库会把中文提问、中文回答写入数据库，
+# 若客户端编码跟随 Windows 系统区域设置（GBK），写入中文会失败。
+engine = create_engine(DATABASE_URL, echo=False, connect_args={"client_encoding": "utf8"})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
